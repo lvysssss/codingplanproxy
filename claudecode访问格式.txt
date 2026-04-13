@@ -1,0 +1,44 @@
+POST /v1/messages HTTP/1.1
+Host: api.anthropic.com
+Content-Type: application/json
+x-api-key: sk-ant-api03-xxxxxxxxxxxx...  <-- 用户的 API Key
+anthropic-version: 2023-06-01            <-- API 版本号
+anthropic-beta: prompt-caching-2024-07-31, computer-use-2024-10-22 <-- 可能启用的 Beta 功能
+User-Agent: claude-code/0.2.15 (node/20.10.0; darwin; arm64) <-- 关键标识
+Accept: text/event-stream                <-- 开启流式传输
+{
+  "model": "claude-sonnet-4-20250514", 
+  "max_tokens": 16384,
+  "system": "You are Claude Code, Anthropic's official CLI for...",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我重构这个 index.ts 文件"
+    }
+  ],
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "读取文件内容",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "execute_bash",
+      "description": "在终端执行命令",
+      "input_schema": { ... }
+    },
+    {
+      "name": "write_file",
+      "description": "写入文件",
+      "input_schema": { ... }
+    }
+    // ... 可能还有编辑文件、搜索代码等工具
+  ],
+  "tool_choice": { "type": "auto" }
+}
