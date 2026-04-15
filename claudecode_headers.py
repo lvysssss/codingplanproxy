@@ -1,7 +1,7 @@
 """生成 Claude Code 伪装请求头"""
 from config import API_KEY
 
-CLAUDE_CODE_USER_AGENT = "claude-code/2.1.107 (node/20.10.0; darwin; arm64)"
+CLAUDE_CODE_USER_AGENT = "claude-code/2.1.107 (node/25.8.0; darwin; amd64)"
 ANTHROPIC_VERSION = "2026-04-14"
 ANTHROPIC_BETA = "prompt-caching-2026-04-14,computer-use-2026-04-14"
 
