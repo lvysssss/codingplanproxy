@@ -1,2 +1,6 @@
 .claude/
 .env
+CLAUDE.md
+agent.md
+anthropic格式详解.txt
+claudecode访问格式.txt
