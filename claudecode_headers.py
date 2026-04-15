@@ -1,9 +1,9 @@
 """生成 Claude Code 伪装请求头"""
 from config import API_KEY
 
-CLAUDE_CODE_USER_AGENT = "claude-code/0.2.15 (node/20.10.0; darwin; arm64)"
-ANTHROPIC_VERSION = "2023-06-01"
-ANTHROPIC_BETA = "prompt-caching-2024-07-31,computer-use-2024-10-22"
+CLAUDE_CODE_USER_AGENT = "claude-code/2.1.107 (node/20.10.0; darwin; arm64)"
+ANTHROPIC_VERSION = "2026-04-14"
+ANTHROPIC_BETA = "prompt-caching-2026-04-14,computer-use-2026-04-14"
 
 
 def build_headers(extra_headers: dict | None = None) -> dict:

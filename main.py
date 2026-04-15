@@ -32,9 +32,10 @@ async def chat_completions(request: Request):
 
     body = await request.json()
     is_stream = body.get("stream", False)
+    request_model = body.get("model", MODEL_NAME)
 
     # 转换请求
-    anthropic_body = convert_request(body)
+    anthropic_body = convert_request(body, MODEL_NAME)
 
     # 构建发送到 Anthropic 的请求头
     headers = build_headers()
@@ -44,12 +45,12 @@ async def chat_completions(request: Request):
     url = f"{BASE_URL}/v1/messages"
 
     if is_stream:
-        return await _handle_stream(url, headers, anthropic_body)
+        return await _handle_stream(url, headers, anthropic_body, request_model)
     else:
-        return await _handle_non_stream(url, headers, anthropic_body)
+        return await _handle_non_stream(url, headers, anthropic_body, request_model)
 
 
-async def _handle_non_stream(url: str, headers: dict, body: dict) -> JSONResponse:
+async def _handle_non_stream(url: str, headers: dict, body: dict, request_model: str) -> JSONResponse:
     """处理非流式请求"""
     try:
         resp = await client.post(url, headers=headers, json=body)
@@ -64,14 +65,14 @@ async def _handle_non_stream(url: str, headers: dict, body: dict) -> JSONRespons
         raise HTTPException(status_code=resp.status_code, detail=err)
 
     anthropic_resp = resp.json()
-    openai_resp = convert_response(anthropic_resp, MODEL_NAME)
+    openai_resp = convert_response(anthropic_resp, request_model)
     return JSONResponse(content=openai_resp)
 
 
-async def _handle_stream(url: str, headers: dict, body: dict) -> StreamingResponse:
+async def _handle_stream(url: str, headers: dict, body: dict, request_model: str) -> StreamingResponse:
     """处理流式请求"""
     async def stream_generator():
-        converter = StreamConverter(MODEL_NAME)
+        converter = StreamConverter(request_model)
         async with client.stream("POST", url, headers=headers, json=body) as resp:
             if resp.status_code != 200:
                 error_body = await resp.aread()

@@ -2,12 +2,12 @@
 import json
 import time
 import uuid
-from config import MODEL_NAME, DEFAULT_MAX_TOKENS, SYSTEM_PROMPT
+from config import DEFAULT_MAX_TOKENS, SYSTEM_PROMPT
 
 
 # ── 请求转换: OpenAI → Anthropic ──────────────────────────────────
 
-def convert_request(body: dict) -> dict:
+def convert_request(body: dict, default_model: str) -> dict:
     """将 OpenAI /v1/chat/completions 请求体转为 Anthropic /v1/messages 请求体"""
     messages = body.get("messages", [])
     anthropic_messages = []
@@ -29,7 +29,7 @@ def convert_request(body: dict) -> dict:
 
     # 3. 组装请求体
     result = {
-        "model": MODEL_NAME,
+        "model": body.get("model") or default_model,
         "max_tokens": body.get("max_tokens") or body.get("max_completion_tokens") or DEFAULT_MAX_TOKENS,
         "messages": anthropic_messages,
     }
