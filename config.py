@@ -7,6 +7,15 @@ load_dotenv()
 BASE_URL = os.getenv("BASE_URL", "https://api.anthropic.com").rstrip("/")
 API_KEY = os.getenv("API_KEY", "")
 MODEL_NAME = os.getenv("MODEL_NAME", "claude-sonnet-4-20250514")
+
+# 多模型支持：逗号分隔的模型列表（如 "claude-sonnet-4-20250514,claude-opus-4-20250514"）
+# 如果未配置，默认只包含 MODEL_NAME
+_available_models = os.getenv("AVAILABLE_MODELS", "")
+if _available_models:
+    AVAILABLE_MODELS = [m.strip() for m in _available_models.split(",") if m.strip()]
+else:
+    AVAILABLE_MODELS = [MODEL_NAME]
+
 DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "16384"))
 
 # 可选注入的 system prompt（留空则不注入）

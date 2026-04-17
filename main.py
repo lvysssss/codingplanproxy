@@ -4,7 +4,7 @@ import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from config import BASE_URL, API_KEY, MODEL_NAME, DEFAULT_MAX_TOKENS, PORT, PROXY_API_KEY
+from config import BASE_URL, API_KEY, MODEL_NAME, AVAILABLE_MODELS, DEFAULT_MAX_TOKENS, PORT, PROXY_API_KEY
 from claudecode_headers import build_headers
 from converter import convert_request, convert_response
 from stream_converter import StreamConverter
@@ -34,8 +34,14 @@ async def chat_completions(request: Request):
     is_stream = body.get("stream", False)
     request_model = body.get("model", MODEL_NAME)
 
-    # 转换请求
-    anthropic_body = convert_request(body, MODEL_NAME)
+    if request_model not in AVAILABLE_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的模型: {request_model}，可用模型: {', '.join(AVAILABLE_MODELS)}"
+        )
+
+    # 转换请求（使用请求中指定的模型）
+    anthropic_body = convert_request(body, request_model)
 
     # 构建发送到 Anthropic 的请求头
     headers = build_headers()
@@ -108,23 +114,31 @@ async def list_models(request: Request):
     _check_auth(request)
     return {
         "object": "list",
-        "data": [{
-            "id": MODEL_NAME,
-            "object": "model",
-            "created": 1700000000,
-            "owned_by": "anthropic",
-        }],
+        "data": [
+            {
+                "id": model_id,
+                "object": "model",
+                "created": 1700000000,
+                "owned_by": "anthropic",
+            }
+            for model_id in AVAILABLE_MODELS
+        ],
     }
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "upstream": BASE_URL, "model": MODEL_NAME}
+    return {
+        "status": "ok",
+        "upstream": BASE_URL,
+        "model": MODEL_NAME,
+        "available_models": AVAILABLE_MODELS,
+    }
 
 
 if __name__ == "__main__":
     import uvicorn
     if not API_KEY:
         print("警告: API_KEY 未设置，请在 .env 中配置")
-    print(f"代理启动 → 上游: {BASE_URL}, 模型: {MODEL_NAME}, 端口: {PORT}")
+    print(f"代理启动 → 上游: {BASE_URL}, 模型: {', '.join(AVAILABLE_MODELS)}, 端口: {PORT}")
     uvicorn.run(app, host="0.0.0.0", port=PORT)
