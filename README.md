@@ -68,7 +68,7 @@ Windows 用户可双击 `startcodingplanproxy.bat` 一键启动。
 启动成功后会看到：
 
 ```
-代理启动 → 上游: https://api.anthropic.com, 模型: claude-sonnet-4-20250514, 端口: 8000
+代理启动 → 上游: https://api.anthropic.com, 端口: 8000
 ```
 
 ## 配置
@@ -78,7 +78,7 @@ Windows 用户可双击 `startcodingplanproxy.bat` 一键启动。
 | 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
 | `BASE_URL` | 否 | `https://api.anthropic.com` | Anthropic API 上游地址，可改为中转地址 |
-| `API_KEY` | **是** | — | Anthropic API Key，以 `sk-ant-` 开头 |
+| `API_KEY` | **是** | — | 上游 API Key |
 | `AVAILABLE_MODELS` | 否 | （空） | 本地补充模型列表（逗号分隔），留空则仅使用远端自动获取的模型；上游不展示但实际可用的模型可手动在此添加 |
 | `DEFAULT_MAX_TOKENS` | 否 | `16384` | 默认最大输出 token 数 |
 | `SYSTEM_PROMPT` | 否 | （空） | 注入的默认 system prompt，仅在请求无 system 消息时生效 |
@@ -107,15 +107,33 @@ PROXY_API_KEY=my-proxy-secret
 
 ## 使用
 
-代理启动后，所有端点兼容 OpenAI API 格式。将你的 OpenAI 客户端 base_url 指向代理地址即可。
-baseurl: http://localhost:8000/v1
+代理启动后，所有端点兼容 OpenAI API 格式。将你的 OpenAI 客户端 `base_url` 指向代理地址即可：
+
+```
+http://localhost:8000/v1
+```
 ### 端点列表
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/v1/chat/completions` | 核心端点，聊天补全 |
 | GET | `/v1/models` | 返回可用模型列表 |
-| GET | `/health` | 健康检查 |
+| GET | `/health` | 健康检查，含模型来源统计 |
+
+### 自动模型发现
+
+服务启动时自动从上游 `GET /v1/models`（Anthropic 格式）获取可用模型列表，与本地 `AVAILABLE_MODELS` 合并后通过 `/v1/models`（OpenAI 格式）暴露。上游模型列表缓存 30 分钟，过期自动刷新。
+
+```bash
+# 查看当前可用模型（本地 + 远端合并）
+curl http://localhost:8000/v1/models
+
+# 查看模型来源统计
+curl http://localhost:8000/health
+# → {"local_models": 0, "remote_models": 120, ...}
+```
+
+如果上游不支持 Models API，`remote_models` 为 0，仅使用本地 `AVAILABLE_MODELS` 配置。
 
 ### 基础对话
 
@@ -316,10 +334,6 @@ curl http://localhost:8000/v1/chat/completions \
 
 确认 `.env` 文件存在于项目根目录，且 `API_KEY` 已填入有效值：
 
-```env
-API_KEY=sk-ant-api03-xxxxxxxxxxxx
-```
-
 ### 请求返回 401 Unauthorized
 
 - 如果配置了 `PROXY_API_KEY`，请求需携带 `Authorization: Bearer <your-proxy-key>` 头
@@ -327,12 +341,19 @@ API_KEY=sk-ant-api03-xxxxxxxxxxxx
 
 ### 请求返回 502 Bad Gateway
 
-- 检查 `BASE_URL` 是否正确，网络是否能访问 Anthropic API
+- 检查 `BASE_URL` 是否正确，网络是否能访问上游 API
 - 如果在国内，可能需要设置 HTTP 代理或使用中转地址：
 
 ```env
 BASE_URL=https://your-proxy-domain.com
 ```
+
+### `/v1/models` 返回空列表
+
+可能原因及解决：
+- 上游不支持 Models API（`/health` 中 `remote_models: 0`）→ 手动在 `AVAILABLE_MODELS` 中添加模型
+- 上游鉴权失败 → 检查 `API_KEY` 是否正确
+- 网络不通 → 检查 `BASE_URL` 和网络
 
 ### 流式响应中断 / 无 [DONE] 标记
 
