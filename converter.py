@@ -28,8 +28,10 @@ def convert_request(body: dict, default_model: str) -> dict:
     anthropic_messages = _convert_messages(non_system)
 
     # 3. 组装请求体
+    # model 优先用请求中的，没有则用 default_model（即 main.py 传入的 request_model）
+    # 如果两者都为空，上游 Anthropic 会返回错误
     result = {
-        "model": body.get("model") or default_model,
+        "model": body.get("model") or default_model or "",
         "max_tokens": body.get("max_tokens") or body.get("max_completion_tokens") or DEFAULT_MAX_TOKENS,
         "messages": anthropic_messages,
     }

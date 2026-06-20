@@ -1,18 +1,32 @@
 """OpenAI → Claude Code 代理服务"""
 import json
+import logging
 import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from config import BASE_URL, API_KEY, AVAILABLE_MODELS, DEFAULT_MAX_TOKENS, PORT, PROXY_API_KEY
+from config import BASE_URL, API_KEY, DEFAULT_MAX_TOKENS, PORT, PROXY_API_KEY
 from claudecode_headers import build_headers
 from converter import convert_request, convert_response
 from stream_converter import StreamConverter
+from model_registry import registry
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LLM API → Claude Code Proxy")
 
 # 复用 HTTP 客户端
 client = httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=30.0))
+
+
+@app.on_event("startup")
+async def startup():
+    """启动时从上游拉取可用模型列表"""
+    logger.info("正在从上游获取模型列表...")
+    await registry.startup_refresh()
+    models = await registry.get_models()
+    logger.info("启动完成，可用模型: %s", ", ".join(models) if models else "(无)")
 
 
 def _check_auth(request: Request):
@@ -34,13 +48,7 @@ async def chat_completions(request: Request):
     is_stream = body.get("stream", False)
     request_model = body.get("model")
 
-    if not request_model or request_model not in AVAILABLE_MODELS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"不支持的模型: {request_model}，可用模型: {', '.join(AVAILABLE_MODELS)}"
-        )
-
-    # 转换请求（使用请求中指定的模型）
+    # 转换请求（使用请求中指定的模型，不作白名单校验，上游自行判断合法性）
     anthropic_body = convert_request(body, request_model)
 
     # 构建发送到 Anthropic 的请求头
@@ -110,8 +118,9 @@ async def _handle_stream(url: str, headers: dict, body: dict, request_model: str
 
 @app.get("/v1/models")
 async def list_models(request: Request):
-    """返回可用模型列表（OpenAI 兼容格式）"""
+    """返回可用模型列表（OpenAI 兼容格式，合并本地配置 + 远端获取）"""
     _check_auth(request)
+    models = await registry.get_models()
     return {
         "object": "list",
         "data": [
@@ -121,7 +130,7 @@ async def list_models(request: Request):
                 "created": 1700000000,
                 "owned_by": "anthropic",
             }
-            for model_id in AVAILABLE_MODELS
+            for model_id in models
         ],
     }
 
@@ -131,7 +140,9 @@ async def health():
     return {
         "status": "ok",
         "upstream": BASE_URL,
-        "available_models": AVAILABLE_MODELS,
+        "available_models": await registry.get_models(),
+        "local_models": registry.local_count,
+        "remote_models": registry.remote_count,
     }
 
 
@@ -139,5 +150,5 @@ if __name__ == "__main__":
     import uvicorn
     if not API_KEY:
         print("警告: API_KEY 未设置，请在 .env 中配置")
-    print(f"代理启动 → 上游: {BASE_URL}, 模型: {', '.join(AVAILABLE_MODELS)}, 端口: {PORT}")
+    print(f"代理启动 → 上游: {BASE_URL}, 端口: {PORT}")
     uvicorn.run(app, host="0.0.0.0", port=PORT)
