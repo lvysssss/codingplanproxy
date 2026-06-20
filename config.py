@@ -6,15 +6,15 @@ load_dotenv()
 # Anthropic API 固定配置
 BASE_URL = os.getenv("BASE_URL", "https://api.anthropic.com").rstrip("/")
 API_KEY = os.getenv("API_KEY", "")
-MODEL_NAME = os.getenv("MODEL_NAME", "claude-sonnet-4-20250514")
 
-# 多模型支持：逗号分隔的模型列表（如 "claude-sonnet-4-20250514,claude-opus-4-20250514"）
-# 如果未配置，默认只包含 MODEL_NAME
+# 多模型支持：逗号分隔的可用模型列表（如 "claude-sonnet-4-20250514,claude-opus-4-20250514"）
+# 请求中的 model 字段必须在白名单内，否则返回 400
+# 如果未配置，默认只包含一个模型
 _available_models = os.getenv("AVAILABLE_MODELS", "")
 if _available_models:
     AVAILABLE_MODELS = [m.strip() for m in _available_models.split(",") if m.strip()]
 else:
-    AVAILABLE_MODELS = [MODEL_NAME]
+    AVAILABLE_MODELS = ["claude-sonnet-4-20250514"]
 
 DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "16384"))
 

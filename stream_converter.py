@@ -2,13 +2,10 @@
 import json
 import time
 import uuid
-from config import MODEL_NAME
-
-
 class StreamConverter:
     """有状态的 SSE 流转换器，逐行处理 Anthropic 事件，输出 OpenAI 格式"""
 
-    def __init__(self, model: str = MODEL_NAME):
+    def __init__(self, model: str):
         self.model = model
         self.completion_id = f"chatcmpl-{uuid.uuid4().hex[:29]}"
         self.created = int(time.time())

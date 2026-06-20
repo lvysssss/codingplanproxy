@@ -4,7 +4,7 @@ import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from config import BASE_URL, API_KEY, MODEL_NAME, AVAILABLE_MODELS, DEFAULT_MAX_TOKENS, PORT, PROXY_API_KEY
+from config import BASE_URL, API_KEY, AVAILABLE_MODELS, DEFAULT_MAX_TOKENS, PORT, PROXY_API_KEY
 from claudecode_headers import build_headers
 from converter import convert_request, convert_response
 from stream_converter import StreamConverter
@@ -32,9 +32,9 @@ async def chat_completions(request: Request):
 
     body = await request.json()
     is_stream = body.get("stream", False)
-    request_model = body.get("model", MODEL_NAME)
+    request_model = body.get("model")
 
-    if request_model not in AVAILABLE_MODELS:
+    if not request_model or request_model not in AVAILABLE_MODELS:
         raise HTTPException(
             status_code=400,
             detail=f"不支持的模型: {request_model}，可用模型: {', '.join(AVAILABLE_MODELS)}"
@@ -131,7 +131,6 @@ async def health():
     return {
         "status": "ok",
         "upstream": BASE_URL,
-        "model": MODEL_NAME,
         "available_models": AVAILABLE_MODELS,
     }
 
