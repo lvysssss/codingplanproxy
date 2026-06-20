@@ -1,0 +1,10 @@
+.claude/
+.env
+__pycache__/
+CLAUDE.md
+agent.md
+anthropic格式详解.txt
+claudecode访问格式.txt
+Anthropic API *.md
+OpenAI-Chat*.md
+nul
