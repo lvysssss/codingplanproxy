@@ -1,6 +1,7 @@
 .claude/
 .env
 __pycache__/
+docs/
 CLAUDE.md
 agent.md
 anthropic格式详解.txt
