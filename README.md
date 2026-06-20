@@ -1,23 +1,24 @@
 # CodingPlanProxy
 
-OpenAI-to-Anthropic API 代理服务。将 OpenAI `/v1/chat/completions` 格式请求转换为 Anthropic `/v1/messages` 格式并转发，响应再转回 OpenAI 格式返回客户端。请求头伪装为 Claude Code CLI 客户端，使任何支持 OpenAI API 的客户端都能直接访问 Anthropic Claude 模型。
+> 伪装成 Claude Code CLI 客户端，从只对 Agent 开放的 Coding Plan API 骗取服务。
+
+核心问题：部分 Coding Plan API **只**对 Claude Code 等 Coding Agent 开放，普通 API 调用直接拒绝服务。本代理将请求头伪装为 Claude Code CLI，骗过上游的身份检查，让任何 OpenAI 格式客户端都能接入。
 
 ## 功能特性
 
-- **OpenAI 格式兼容** — 完整实现 `/v1/chat/completions` 和 `/v1/models` 端点，兼容所有使用 OpenAI SDK 的客户端
-- **双向格式转换** — 请求/响应自动转换，包括 tool calls、tool results、图片输入等复杂场景
-- **流式输出** — 支持 SSE 流式响应，逐 token 实时返回
-- **Claude Code 伪装** — 请求头模拟 Claude Code CLI，启用 prompt caching 和 computer-use 等 beta 特性
-- **动态模型选择** — 请求中的 `model` 字段不作限制，任意值均透传上游；`/v1/models` 端点自动合并本地配置与远端获取的模型列表
-- **自动模型发现** — 启动时自动从上游 Anthropic API 获取可用模型列表，与本地 `AVAILABLE_MODELS` 合并后通过 `/v1/models` 暴露
-- **可选鉴权** — 支持为代理设置 API Key，防止未授权访问
+- **Claude Code 伪装** — 请求头 1:1 模拟 Claude Code CLI（User-Agent、anthropic-version、anthropic-beta），骗过上游的 Agent 身份校验，拿到服务资格
+- **自动模型发现** — 启动时从上游拉取可用模型列表，`/v1/models` 自动同步，无需手动配置
+- **零过滤透传** — 请求中的 `model` 字段不做任何校验，爱传啥传啥，上游自行裁决
+- **OpenAI 格式兼容** — 实现 `/v1/chat/completions` 和 `/v1/models` 端点，所有 OpenAI SDK 客户端开箱即用
+- **双向格式转换** — 请求/响应自动转换，覆盖 tool calls、tool results、图片输入等复杂场景
+- **流式输出** — SSE 流式响应，逐 token 实时返回
+- **可选鉴权** — 支持为代理设置 API Key，防止蹭网
 - **System Prompt 注入** — 可选在无 system 消息时自动注入默认 system prompt
 
 ## 目标用户
 
-- 需要通过 OpenAI 兼容客户端（如 ChatGPT 前端、OpenAI SDK）访问 Claude 模型的开发者
-- 希望利用 Claude Code 特有特性（prompt caching、computer-use）的用户
-- 需要统一多模型 API 格式的团队
+- 手上有 OpenAI 兼容客户端，但上游 Coding Plan API 只认 Claude Code / Agent 请求，普通调用直接拒
+- 需要 prompt caching、computer-use 等 Claude Code 独占特性，但不想用 Claude Code CLI 的开发者
 
 ## 安装
 
